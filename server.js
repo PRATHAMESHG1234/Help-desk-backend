@@ -1,6 +1,6 @@
 const express = require('express');
 const connectDB = require('./utils/db');
-const cors = require('cors');
+// const cors = require('cors');
 const app = express();
 
 ///connect DataBase
@@ -8,7 +8,7 @@ const app = express();
 connectDB();
 
 //use cors middleware :cross-origin requests from any domain. You can configure it to allow requests only from specific domains if needed
-app.use(cors());
+// app.use(cors());
 // // //init middleware
 
 app.use(express.json({ extended: true }));
