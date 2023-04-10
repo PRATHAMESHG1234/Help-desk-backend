@@ -5,7 +5,7 @@ const User = require('../models/User');
 const Management = require('../models/Mangement');
 const Customers = require('../models/Customers');
 const registerUser = async (username, password) => {
-  const userExists = await User.findOne({ email });
+  const userExists = await User.findOne({ username });
   if (userExists) {
     throw new Error('User already exists');
   }
