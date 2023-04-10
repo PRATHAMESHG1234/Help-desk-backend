@@ -39,16 +39,14 @@ router.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
       }
 
       const { firstName, lastName, email, managementType } = req.body;
-
-      // Check if user with same email exists
-      let user = await User.findOne({ email });
-      if (user) {
-        return res.status(400).json({ msg: 'User already exists' });
-      }
 
       // Generate a new password
       const newPassword = generatePassword();
@@ -57,15 +55,11 @@ router.post(
       const hashedPassword = await hashPassword(newPassword);
 
       // Register the user
-      const newUser = new User({
-        email,
-        password: hashedPassword,
-      });
-      const savedUser = await newUser.save();
+      const userId = await registerUser(email, hashedPassword);
 
       //send email with  username and password
       const response = await sendRegistrationEmail(
-        savedUser._id,
+        userId,
         firstName,
         email,
         newPassword
@@ -79,7 +73,7 @@ router.post(
         managementType == 'Agent'
       ) {
         result = await createManagementUser(
-          savedUser._id,
+          userId,
           firstName,
           lastName,
           email,
@@ -88,19 +82,25 @@ router.post(
         );
       } else {
         result = await createCustomerUser(
-          savedUser._id,
+          userId,
           firstName,
           lastName,
           email,
           newPassword
         );
       }
-      res.json({ msg: 'User registered successfully' });
+      res.json({
+        success: true,
+        message: `${managementType} registered successfully`,
+      });
 
       // Generate a JWT token
     } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+      res.status(500).json({
+        success: false,
+        error: err.message,
+      });
+      console.log(err);
     }
   }
 );
@@ -113,44 +113,51 @@ router.post(
     check('password').notEmpty().withMessage('Password is required'),
   ],
   async (req, res) => {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { username, password } = req.body;
-
     try {
+      // Check for validation errors
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const { username, password } = req.body;
+
       // Find user by username
       const user = await User.findOne({ username });
 
       if (!user) {
-        return res
-          .status(401)
-          .json({ message: 'Invalid username or password' });
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid username or password',
+        });
       }
 
       // Compare password
       const isMatch = await bcrypt.compare(password, user.password);
 
       if (!isMatch) {
-        return res
-          .status(401)
-          .json({ message: 'Invalid username or password' });
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid username or password',
+        });
       }
 
       // Generate token
       const token = generateToken(user._id);
-      console.log(token);
+
       // Return success response with token
       return res.json({
-        token,
+        success: true,
         message: 'Login successful',
+        data: { token },
       });
     } catch (error) {
       console.error(error.message);
-      return res.status(500).json({ message: 'Server Error' });
+      return res.status(500).json({ success: false, message: 'Server Error' });
     }
   }
 );
@@ -164,14 +171,13 @@ router.get('/auth', auth, async (req, res) => {
       Customers.findOne({ user_id: req.user.id }),
     ]);
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    return res.json(user);
+    return res.json({
+      success: true,
+      data: { user },
+    });
   } catch (error) {
     console.error(error.message);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ success: false, message: 'Server Error' });
   }
 });
 /**

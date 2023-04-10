@@ -5,71 +5,64 @@ const User = require('../models/User');
 const Management = require('../models/Mangement');
 const Customers = require('../models/Customers');
 const registerUser = async (username, password) => {
-  try {
-    const user = await User.create({
-      username,
-      password,
-    });
-    return user._id;
-  } catch (error) {
-    if (error.code === 11000) {
-      // Mongoose duplicate key error
-      return { error: 'Username already exists' };
-    } else {
-      console.error(error.message);
-      return { error: 'Server error' };
-    }
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    throw new Error('User already exists');
   }
+  const user = await User.create({
+    username,
+    password,
+  });
+  return user._id;
+
   next();
 };
 
 const createManagementUser = async (
-  user_id,
+  userId,
   firstName,
   lastName,
   email,
   password,
   managementType
 ) => {
-  try {
-    const user = {
-      user_id,
-      firstName,
-      lastName,
-      email,
-      password,
-      managementType,
-    };
-    const result = await Management.create(user);
-    return result;
-  } catch (error) {
-    console.error(error.message);
-    return { error: 'Server error' };
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    throw new Error('User already exists');
   }
-  next();
+  const user = new Management({
+    userId: userId,
+    firstName: firstName,
+    lastName: lastName,
+    managementType: managementType,
+    email: email,
+    password: password,
+  });
+  await user.save();
+  return user;
 };
 
 const createCustomerUser = async (
-  user_id,
+  userId,
   firstName,
   lastName,
   email,
   password
 ) => {
-  try {
-    const user = {
-      user_id,
-      firstName,
-      lastName,
-      email,
-      password,
-    };
-    const result = await Customers.create(user);
-    return result;
-  } catch (error) {
-    console.error(error.message);
-    return { error: 'Server error' };
+  const userExists = await User.findOne({ username: email });
+
+  if (userExists) {
+    throw new Error('User already exists');
   }
+  const user = new Customers({
+    userId: userId,
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    password: password,
+  });
+  await user.save();
+  return user;
 };
 
 const generatePassword = () => {
