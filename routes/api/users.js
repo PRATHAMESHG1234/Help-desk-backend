@@ -25,7 +25,9 @@ const sendRegistrationEmail = require('../../middleware/mailler');
 
 const router = express.Router();
 
-// Register user route
+// @route    POST api/auth/register
+// @desc     Register a user
+// @access   Private (Super Admin)
 router.post(
   '/register',
   [
@@ -39,7 +41,7 @@ router.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      console.log(req.body);
+
       const { firstName, lastName, email, managementType } = req.body;
 
       // Check if user with same email exists
@@ -55,12 +57,16 @@ router.post(
       const hashedPassword = await hashPassword(newPassword);
 
       // Register the user
-      const userId = await registerUser(email, hashedPassword);
+      const newUser = new User({
+        email,
+        password: hashedPassword,
+      });
+      const savedUser = await newUser.save();
+
       //send email with  username and password
       const response = await sendRegistrationEmail(
-        userId,
+        savedUser._id,
         firstName,
-
         email,
         newPassword
       );
@@ -73,7 +79,7 @@ router.post(
         managementType == 'Agent'
       ) {
         result = await createManagementUser(
-          userId,
+          savedUser._id,
           firstName,
           lastName,
           email,
@@ -82,15 +88,15 @@ router.post(
         );
       } else {
         result = await createCustomerUser(
-          userId,
+          savedUser._id,
           firstName,
           lastName,
           email,
           newPassword
         );
       }
-      res.json(response);
-      console.log(response);
+      res.json({ msg: 'User registered successfully' });
+
       // Generate a JWT token
     } catch (err) {
       console.error(err.message);
