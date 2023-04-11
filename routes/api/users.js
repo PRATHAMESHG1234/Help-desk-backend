@@ -170,7 +170,9 @@ router.get('/auth', auth, async (req, res) => {
       Management.findOne({ user_id: req.user.id }),
       Customers.findOne({ user_id: req.user.id }),
     ]);
-
+    if (!user) {
+      res.status(500).json({ success: false, message: 'Server Error' });
+    }
     return res.json({
       success: true,
       data: { user },

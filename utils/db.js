@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const config = require('../config/default.json');
+// "mongoURI": "mongodb+srv://ghorpadeprathamesh2411:ghorpadeprathamesh2411@cluster0.bha9q0l.mongodb.net/?retryWrites=true&w=majority",
 const connectDB = async () => {
   try {
     await mongoose.connect(config.mongoURI, {
